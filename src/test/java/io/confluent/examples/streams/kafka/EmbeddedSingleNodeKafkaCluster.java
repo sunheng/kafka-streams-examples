@@ -197,6 +197,15 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
+  /**
+   * Delete a Kafka topic.
+   *
+   * @param topic The name of the topic.
+   */
+  public void deleteTopic(String topic) {
+    broker.deleteTopic(topic);
+  }
+
   public boolean isRunning() {
     return running;
   }

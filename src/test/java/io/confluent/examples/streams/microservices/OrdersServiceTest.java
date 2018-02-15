@@ -8,7 +8,10 @@ import io.confluent.examples.streams.microservices.domain.Schemas.Topics;
 import io.confluent.examples.streams.microservices.domain.beans.OrderBean;
 import io.confluent.examples.streams.microservices.util.MicroserviceTestUtils;
 import io.confluent.examples.streams.microservices.util.Paths;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -35,7 +38,6 @@ public class OrdersServiceTest extends MicroserviceTestUtils {
 
   @BeforeClass
   public static void startKafkaCluster() {
-    CLUSTER.createTopic(Topics.ORDERS.name());
     Schemas.configureSerdesWithSchemaRegistryUrl(CLUSTER.schemaRegistryUrl());
   }
 
@@ -47,6 +49,32 @@ public class OrdersServiceTest extends MicroserviceTestUtils {
     if (rest2 != null) {
       rest2.stop();
     }
+  }
+
+  @Before
+  public void prepareKafkaCluster() {
+    try {
+      CLUSTER.deleteTopic(Topics.ORDERS.name());
+    } catch (UnknownTopicOrPartitionException ignore) {
+      // can be ignored
+    }
+
+    final long timeout = System.currentTimeMillis() + 30000;
+    while (true) {
+      try {
+        CLUSTER.createTopic(Topics.ORDERS.name());
+        break;
+      } catch (TopicExistsException expected) {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ignore) {}
+      }
+      if (System.currentTimeMillis() > timeout) {
+        throw new RuntimeException("Could not create topic orders within 30 seconds.");
+      }
+    }
+
+    Schemas.configureSerdesWithSchemaRegistryUrl(CLUSTER.schemaRegistryUrl());
   }
 
   @Test
